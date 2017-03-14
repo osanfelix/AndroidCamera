@@ -59,10 +59,11 @@ public class MainActivity extends AppCompatActivity
         }
         else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK)
         {
-            Bundle extras = data.getExtras();
+            //Bundle extras = data.getExtras();
             // Check image
-            Log.d("CAMERA", "Foto realizada");
-            String file_url = (String) extras.get("file_url");
+            Log.d("CAMERA", "Foto realizada: " + mCurrentPhotoPath);
+            galleryAddPic();
+
         }
     }
 
@@ -101,15 +102,22 @@ public class MainActivity extends AppCompatActivity
             // Continue only if the File was successfully created
             if (photoFile != null)
             {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.example.android.fileprovider",
-                        photoFile);
-                //Uri photoURI = Uri.fromFile(photoFile);
+                //Uri photoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider", photoFile);
+
+                Uri photoURI = Uri.fromFile(photoFile);
 
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                //takePictureIntent.putExtra("file_route", photoURI.getEncodedPath());
+                takePictureIntent.putExtra("file_route", photoURI.getEncodedPath());
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
         }
+    }
+
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
     }
 }
