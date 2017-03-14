@@ -12,7 +12,7 @@
     tools:context="com.example.oscar.androidcamera.MainActivity">
 
     <Button
-        android:text="Button"
+        android:text="Hacer foto"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/Foto"
@@ -20,4 +20,31 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:srcCompat="@mipmap/ic_launcher"
+        android:id="@+id/FotoImage"
+        android:layout_below="@+id/Foto"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="13dp"
+        android:layout_marginStart="13dp"
+        android:layout_marginTop="19dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true" />
+
+    <Button
+        android:text="Cargar imagen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/Foto"
+        android:layout_toEndOf="@+id/Foto"
+        android:layout_marginLeft="17dp"
+        android:layout_marginStart="17dp"
+        android:id="@+id/button"
+        android:onClick="loadFoto" />
 </RelativeLayout>

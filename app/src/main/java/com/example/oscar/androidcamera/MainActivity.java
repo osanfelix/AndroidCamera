@@ -1,7 +1,9 @@
 package com.example.oscar.androidcamera;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Debug;
 import android.os.Environment;
@@ -13,6 +15,7 @@ import android.hardware.camera2.*;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,59 +24,87 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity
 {
-    static final int REQUEST_IMAGE_CAPTURE = 1;
-    static final int REQUEST_TAKE_PHOTO = 2;
+    static final int REQUEST_TAKE_PHOTO = 1;
 
     ImageView mImageView = null;
+    String mCurrentPhotoPath = null;    // Ruta completa de la foto cuando se haga
+
+    String photoName = "Javier Gimenez";    // Internamente se guardará como Javier Gimenez-numeroAleatorio.jpg ==> Javier Gimenez-45378563484.jpg
+
+    /*
+    En la memoria del teléfono se guardará la siguiente información:
+
+    [NAME]
+    Javier Gimenez
+
+    [ROUTE]
+    /storage/sdcard1/Android/data/com.example.xxxx.yyyyyy/files/Pictures
+
+    [EXTENSION]
+    -45378563484.jpg
+
+
+    Así que la ruta completa será:
+    /storage/sdcard1/Android/data/com.example.xxxx.yyyyyy/files/Pictures/Javier Gimenez-45378563484.jpg
+
+     */
+
+
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        //mImageView = (ImageView) findViewById(R.id.Foto);
+        mImageView = (ImageView) findViewById(R.id.FotoImage);
     }
 
     public void makePhoto(View view)
     {
         Log.d("CAMERA", "click done");
-        //doPhoto();
-        dispatchTakePictureIntent();
+        dispatchTakePictureIntent("Javier Gimenez");
     }
 
-
-    void doPhoto()
+    public void loadFoto(View view)
     {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-        }
+        // Put bitmap from imageFile into imageView
+        SharedPreferences prefs = getPreferences(0);;
+
+        String routePictures = prefs.getString("ROUTE", "");
+        String name = prefs.getString("NAME", "");
+        String extension = prefs.getString("EXTENSION", "");
+
+        String fullPath = prefs.getString("ROUTE", "") + "/" + name + extension;
+
+        if(name.equals("Javier Gimenez"))
+            setPic(fullPath);
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK)
+        if(requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK)
         {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            mImageView.setImageBitmap(imageBitmap);
-        }
-        else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK)
-        {
-            //Bundle extras = data.getExtras();
-            // Check image
-            Log.d("CAMERA", "Foto realizada: " + mCurrentPhotoPath);
-            galleryAddPic();
+            File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+            Toast.makeText(this, "Foto de " + photoName + " creada!", Toast.LENGTH_SHORT).show();
 
+
+
+            // Save route and foto name in shared preferences
+            SharedPreferences prefs = getPreferences(0);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            editor.putString("ROUTE", storageDir.getAbsolutePath());
+            editor.putString("NAME", photoName);
+            int idx = mCurrentPhotoPath.split(photoName).length;
+            String extension = mCurrentPhotoPath.split(photoName)[idx - 1];
+            editor.putString("EXTENSION", extension);
+            editor.commit();
         }
     }
 
-    String mCurrentPhotoPath;
-
-    private File createImageFile() throws IOException
+    private File createImageFile(String imageFileName) throws IOException
     {
-        // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
+        // Create an image file
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
@@ -86,15 +117,17 @@ public class MainActivity extends AppCompatActivity
         return image;
     }
 
-    private void dispatchTakePictureIntent() {
+    private void dispatchTakePictureIntent(String imageFile)
+    {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null)
+        {
             // Create the File where the photo should go
             File photoFile = null;
             try
             {
-                photoFile = createImageFile();
+                photoFile = createImageFile(imageFile);
             } catch (IOException ex) {
                 // Error occurred while creating the File
                 Log.e("ERROR", "Error al crear el fichero de la foto.");
@@ -102,22 +135,35 @@ public class MainActivity extends AppCompatActivity
             // Continue only if the File was successfully created
             if (photoFile != null)
             {
-                //Uri photoURI = FileProvider.getUriForFile(this, "com.example.android.fileprovider", photoFile);
-
                 Uri photoURI = Uri.fromFile(photoFile);
-
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                takePictureIntent.putExtra("file_route", photoURI.getEncodedPath());
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
         }
     }
 
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
+    private void setPic(String imagePath)
+    {
+        // Get the dimensions of the View
+        int targetW = mImageView.getWidth();
+        int targetH = mImageView.getHeight();
+
+        // Get the dimensions of the bitmap
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(imagePath, bmOptions);
+        int photoW = bmOptions.outWidth;
+        int photoH = bmOptions.outHeight;
+
+        // Determine how much to scale down the image
+        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+
+        // Decode the image file into a Bitmap sized to fill the View
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = scaleFactor;
+        bmOptions.inPurgeable = true;
+
+        Bitmap bitmap = BitmapFactory.decodeFile(imagePath, bmOptions);
+        mImageView.setImageBitmap(bitmap);
     }
 }
